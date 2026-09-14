@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Treino {
+  id         Int               @id @default(autoincrement())
+  nome       String
+  objetivo   String
+  exercicios TreinoExercicio[]
+}
+
+model Exercicios {
+  id            Int               @id @default(autoincrement())
+  nome          String
+  grupoMuscular String
+  treinos       TreinoExercicio[]
+}
+
+model TreinoExercicio {
+  treinoId    Int
+  exercicioId Int
+
+  treino    Treino     @relation(fields: [treinoId], references: [id], onDelete: Cascade)
+  exercicio Exercicios @relation(fields: [exercicioId], references: [id], onDelete: Cascade)
+
+  @@id([treinoId, exercicioId])
+}
