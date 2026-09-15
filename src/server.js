@@ -7,7 +7,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
-    mensagem: "A StreamFit está funcionando!",
+    mensagem: "A TSfitness está funcionando!",
   });
 });
 
