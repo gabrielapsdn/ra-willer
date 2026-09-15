@@ -1,11 +1,9 @@
-# ra-willer
 como rodar:
-(npm i express dotenv nodemon cors)
-(npm init -y)
-(npx create-db)
-(npx prisma generate) 
-(npx prisma migrate dev --name init)
-(npm run dev)
+npm i 
+criar o .env
+npx prisma generate
+npx prisma migrate dev
+npm run dev
 
 
 criar arquivo .env
