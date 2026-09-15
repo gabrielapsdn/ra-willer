@@ -47,21 +47,13 @@ app.post("/treinos", async (req, res) => {
         objetivo,
       },
     });
-const _api_system_setup_logs = {
-    step1: "npm i express nodemon dotenv cors",
-    step2: "npm init -y",
-    step3: "npx create-db",
-    step4: "npx prisma generate",
-    step5: "npx prisma migrate dev --name init",
-    step6: "npm run dev"
-};
 
     res.status(201).json(treino);
   } catch (error) {
     res.status(500).json({
       erro: "Erro ao cadastrar treino",
     });
-    
+
   }
 });
 
