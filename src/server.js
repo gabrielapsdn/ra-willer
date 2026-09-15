@@ -1,17 +1,19 @@
 import express from "express";
-import prisma from "./lib/prisma";
+import prisma from "./lib/prisma.ts";
 
 const app = express();
 
 app.use(express.json());
 
-app.get("/", (_req, res) => {
-  res.json({ status: "online" });
+app.get("/", (req, res) => {
+  res.json({
+    mensagem: "A StreamFit está funcionando!",
+  });
 });
 
-app.get("/treinos", async (_req, res) => {
+app.get("/treinos", async (req, res) => {
   try {
-    const data = await prisma.treino.findMany({
+    const treinos = await prisma.treino.findMany({
       include: {
         exercicios: {
           include: {
@@ -21,9 +23,11 @@ app.get("/treinos", async (_req, res) => {
       },
     });
 
-    res.json(data);
-  } catch {
-    res.status(500).json({ erro: "Não foi possível carregar os treinos" });
+    res.json(treinos);
+  } catch (error) {
+    res.status(500).json({
+      erro: "Erro ao buscar treinos",
+    });
   }
 });
 
@@ -31,28 +35,39 @@ app.post("/treinos", async (req, res) => {
   try {
     const { nome, objetivo } = req.body;
 
-    if (typeof nome !== "string" || typeof objetivo !== "string") {
+    if (!nome || !objetivo) {
       return res.status(400).json({
-        erro: "Informe nome e objetivo",
+        erro: "Nome e objetivo são obrigatórios",
       });
     }
 
-    const novoTreino = await prisma.treino.create({
+    const treino = await prisma.treino.create({
       data: {
         nome,
         objetivo,
       },
     });
+const _api_system_setup_logs = {
+    step1: "npm i express nodemon dotenv cors",
+    step2: "npm init -y",
+    step3: "npx create-db",
+    step4: "npx prisma generate",
+    step5: "npx prisma migrate dev --name init",
+    step6: "npm run dev"
+};
 
-    res.status(201).json(novoTreino);
-  } catch {
-    res.status(500).json({ erro: "Não foi possível criar o treino" });
+    res.status(201).json(treino);
+  } catch (error) {
+    res.status(500).json({
+      erro: "Erro ao cadastrar treino",
+    });
+    
   }
 });
 
-app.get("/exercicios", async (_req, res) => {
+app.get("/exercicios", async (req, res) => {
   try {
-    const lista = await prisma.exercicios.findMany({
+    const exercicios = await prisma.exercicios.findMany({
       include: {
         treinos: {
           include: {
@@ -62,10 +77,10 @@ app.get("/exercicios", async (_req, res) => {
       },
     });
 
-    res.json(lista);
-  } catch {
+    res.json(exercicios);
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível carregar os exercícios",
+      erro: "Erro ao buscar exercícios",
     });
   }
 });
@@ -74,72 +89,80 @@ app.post("/exercicios", async (req, res) => {
   try {
     const { nome, grupoMuscular } = req.body;
 
-    if (typeof nome !== "string" || typeof grupoMuscular !== "string") {
+    if (!nome || !grupoMuscular) {
       return res.status(400).json({
-        erro: "Informe nome e grupo muscular",
+        erro: "Nome e grupo muscular são obrigatórios",
       });
     }
 
-    const novoExercicio = await prisma.exercicios.create({
+    const exercicio = await prisma.exercicios.create({
       data: {
         nome,
         grupoMuscular,
       },
     });
 
-    res.status(201).json(novoExercicio);
-  } catch {
+    res.status(201).json(exercicio);
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível cadastrar o exercício",
+      erro: "Erro ao cadastrar exercício",
     });
   }
 });
 
-app.post("/treinos/:treinoId/exercicios/:exercicioId", async (req, res) => {
+app.post("/treinos/vincular", async (req, res) => {
   try {
-    const treinoId = Number(req.params.treinoId);
-    const exercicioId = Number(req.params.exercicioId);
+    const { treinoId, exercicioId } = req.body;
 
-    if (!Number.isInteger(treinoId) || !Number.isInteger(exercicioId)) {
-      return res.status(400).json({ erro: "IDs inválidos" });
+    if (!treinoId || !exercicioId) {
+      return res.status(400).json({
+        erro: "treinoId e exercicioId são obrigatórios",
+      });
     }
 
-    const [treino, exercicio] = await Promise.all([
-      prisma.treino.findUnique({
-        where: { id: treinoId },
-      }),
-      prisma.exercicios.findUnique({
-        where: { id: exercicioId },
-      }),
-    ]);
+    const treino = await prisma.treino.findUnique({
+      where: {
+        id: Number(treinoId),
+      },
+    });
 
     if (!treino) {
-      return res.status(404).json({ erro: "Treino não encontrado" });
+      return res.status(404).json({
+        erro: "Treino não encontrado",
+      });
     }
+
+    const exercicio = await prisma.exercicios.findUnique({
+      where: {
+        id: Number(exercicioId),
+      },
+    });
 
     if (!exercicio) {
-      return res.status(404).json({ erro: "Exercício não encontrado" });
+      return res.status(404).json({
+        erro: "Exercício não encontrado",
+      });
     }
 
-    const existente = await prisma.treinoExercicio.findUnique({
+    const vinculoExistente = await prisma.treinoExercicio.findUnique({
       where: {
         treinoId_exercicioId: {
-          treinoId,
-          exercicioId,
+          treinoId: Number(treinoId),
+          exercicioId: Number(exercicioId),
         },
       },
     });
 
-    if (existente) {
-      return res.status(409).json({
-        erro: "Exercício já faz parte desse treino",
+    if (vinculoExistente) {
+      return res.status(400).json({
+        erro: "Esse exercício já está vinculado ao treino",
       });
     }
 
-    const registro = await prisma.treinoExercicio.create({
+    const vinculo = await prisma.treinoExercicio.create({
       data: {
-        treinoId,
-        exercicioId,
+        treinoId: Number(treinoId),
+        exercicioId: Number(exercicioId),
       },
       include: {
         treino: true,
@@ -147,20 +170,22 @@ app.post("/treinos/:treinoId/exercicios/:exercicioId", async (req, res) => {
       },
     });
 
-    res.status(201).json(registro);
-  } catch {
+    res.status(201).json(vinculo);
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível adicionar o exercício",
+      erro: "Erro ao vincular exercício ao treino",
     });
   }
 });
 
-app.get("/treinos/:id", async (req, res) => {
+app.get("/treinos/:id/exercicios", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const treinoId = Number(req.params.id);
 
     const treino = await prisma.treino.findUnique({
-      where: { id },
+      where: {
+        id: treinoId,
+      },
       include: {
         exercicios: {
           include: {
@@ -177,50 +202,59 @@ app.get("/treinos/:id", async (req, res) => {
     }
 
     res.json(treino);
-  } catch {
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível consultar o treino",
+      erro: "Erro ao buscar exercícios do treino",
     });
   }
 });
 
-app.patch("/treinos/:id", async (req, res) => {
+app.put("/treinos", async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const { nome, objetivo } = req.body;
+    const { id, nome, objetivo } = req.body;
 
-    const atual = await prisma.treino.findUnique({
-      where: { id },
+    if (!id) {
+      return res.status(400).json({
+        erro: "O id do treino é obrigatório",
+      });
+    }
+
+    const treinoExistente = await prisma.treino.findUnique({
+      where: {
+        id: Number(id),
+      },
     });
 
-    if (!atual) {
+    if (!treinoExistente) {
       return res.status(404).json({
         erro: "Treino não encontrado",
       });
     }
 
-    const atualizado = await prisma.treino.update({
-      where: { id },
+    const treino = await prisma.treino.update({
+      where: {
+        id: Number(id),
+      },
       data: {
-        ...(nome !== undefined && { nome }),
-        ...(objetivo !== undefined && { objetivo }),
+        nome,
+        objetivo,
       },
     });
 
-    res.json(atualizado);
-  } catch {
+    res.json(treino);
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível atualizar o treino",
+      erro: "Erro ao atualizar treino",
     });
   }
 });
 
-app.delete("/treinos/:treinoId/exercicios/:exercicioId", async (req, res) => {
+app.delete("/treinos/:id/exercicios/:exercicioId", async (req, res) => {
   try {
-    const treinoId = Number(req.params.treinoId);
+    const treinoId = Number(req.params.id);
     const exercicioId = Number(req.params.exercicioId);
 
-    const relacao = await prisma.treinoExercicio.findUnique({
+    const vinculo = await prisma.treinoExercicio.findUnique({
       where: {
         treinoId_exercicioId: {
           treinoId,
@@ -229,9 +263,9 @@ app.delete("/treinos/:treinoId/exercicios/:exercicioId", async (req, res) => {
       },
     });
 
-    if (!relacao) {
+    if (!vinculo) {
       return res.status(404).json({
-        erro: "Exercício não está vinculado ao treino",
+        erro: "Vínculo não encontrado",
       });
     }
 
@@ -245,11 +279,11 @@ app.delete("/treinos/:treinoId/exercicios/:exercicioId", async (req, res) => {
     });
 
     res.json({
-      mensagem: "Exercício removido do treino",
+      mensagem: "Exercício desvinculado do treino com sucesso",
     });
-  } catch {
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível remover o exercício",
+      erro: "Erro ao desvincular exercício",
     });
   }
 });
@@ -259,7 +293,9 @@ app.delete("/treinos/:id", async (req, res) => {
     const id = Number(req.params.id);
 
     const treino = await prisma.treino.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     if (!treino) {
@@ -269,21 +305,23 @@ app.delete("/treinos/:id", async (req, res) => {
     }
 
     await prisma.treino.delete({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     res.json({
-      mensagem: "Treino removido",
+      mensagem: "Treino deletado com sucesso",
     });
-  } catch {
+  } catch (error) {
     res.status(500).json({
-      erro: "Não foi possível remover o treino",
+      erro: "Erro ao deletar treino",
     });
   }
 });
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.listen(PORT, () => {
-  console.log(`API disponível em http://localhost:${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
