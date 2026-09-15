@@ -1,4 +1,4 @@
-como rodar:
+como rodar: (lembrar de colocar no auto-save)
 npm i =
 criar o .env =
 npx prisma generate =
