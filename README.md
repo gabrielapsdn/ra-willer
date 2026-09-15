@@ -1,6 +1,6 @@
 # ra-willer
 como rodar:
-npm i express dotenv nodemon cors
+``npm i express dotenv nodemon cors
 npm init -y
 npx create-db
 npx prisma generate 
