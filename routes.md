@@ -1,6 +1,6 @@
 Criar treino
 
-http://localhost:3333/treinos --- vai selecionar post
+[http://localhost:3000/treinos] --- vai selecionar post
 
 { "nome": "Perna", "objetivo": "Treinar perna" }
 
